@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>TodoMVC</title>
+    <script src="./vue-next@3.0.0-beta.14.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/todomvc-app-css@2.2.0/index.css" />
+</head>
+</body>
+<section class="todoapp">
+    <header class="header">
+        <h1>todos</h1>
+        <input class="new-todo" autofocus autocomplete="off" placeholder="What needs to be done?" v-model="newTodo"
+            @keyup.enter="addTodo" />
+    </header>
+    <section class="main" v-show="todos.length" v-cloak>
+        <input id="toggle-all" class="toggle-all" type="checkbox" v-model="allDone" />
+        <label for="toggle-all"></label>
+        <ul class="todo-list">
+            <li v-for="todo in filteredTodos" class="todo" :key="todo.id"
+                :class="{ completed: todo.completed, editing: todo == editedTodo }">
+                <div class="view">
+                    <input class="toggle" type="checkbox" v-model="todo.completed" />
+                    <label @dblclick="editTodo(todo)">{{ todo.title }}</label>
+                    <button class="destroy" @click="removeTodo(todo)"></button>
+                </div>
+                <input class="edit" type="text" v-model="todo.title" @blur="doneEdit(todo)"
+                    v-todo-focus="todo == editedTodo" @keyup.enter="doneEdit(todo)" @keyup.esc="cancelEdit(todo)" />
+            </li>
+        </ul>
+    </section>
+    <footer class="footer" v-show="todos.length" v-cloak>
+        <span class="todo-count">
+            <strong>{{ remaining }}</strong> {{ pluralizeRemaining(remaining) }} left
+        </span>
+        <ul class="filters">
+            <li>
+                <a href="#/all" :class="{ selected: visibility == 'all' }">All</a>
+            </li>
+            <li>
+                <a href="#/active" :class="{ selected: visibility == 'active' }">Active</a>
+            </li>
+            <li>
+                <a href="#/completed" :class="{ selected: visibility == 'completed' }">Completed</a>
+            </li>
+        </ul>
+        <button class="clear-completed" @click="removeCompleted" v-show="todos.length > remaining">
+            Clear completed
+        </button>
+    </footer>
+</section>
+<footer class="info">
+    <p>Double-click to edit a todo</p>
+    <p>Written by <a href="https://cn1001wang.github.io/">热爱学习</a>.Refer to  <a href="http://evanyou.me">Evan You</a></p>
+    <p>Part of <a href="http://todomvc.com">TodoMVC</a></p>
+</footer>
+<script>
+    // Full spec-compliant TodoMVC with localStorage persistence
+    // and hash-based routing in ~120 effective lines of JavaScript.
+
+    // localStorage persistence
+    var STORAGE_KEY = "todos-vuejs-2.0";
+    var todoStorage = {
+        fetch: function () {
+            var todos = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+            todos.forEach(function (todo, index) {
+                todo.id = index;
+            });
+            todoStorage.uid = todos.length;
+            return todos;
+        },
+        save: function (todos) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+        }
+    };
+
+    // visibility filters
+    var filters = {
+        all: function (todos) {
+            return todos;
+        },
+        active: function (todos) {
+            return todos.filter(function (todo) {
+                return !todo.completed;
+            });
+        },
+        completed: function (todos) {
+            return todos.filter(function (todo) {
+                return todo.completed;
+            });
+        }
+    };
+    const App = {
+        setup() {
+            const state = Vue.reactive({
+                todos: todoStorage.fetch(),
+                newTodo: "",
+                editedTodo: null,
+                visibility: "all"
+            }); // 定义响应数据
+            Vue.watch(() => state.todos, (todos) => {
+                todoStorage.save(todos);
+                // console.log(todos)
+            }, {
+                deep: true
+            })
+            let filteredTodos = Vue.computed(function () {
+                return filters[state.visibility](state.todos);
+            })
+            let remaining = Vue.computed(function () {
+                return filters.active(state.todos).length;
+            })
+            let allDone = Vue.computed({
+                get: function () {
+                    return remaining.value === 0;
+                },
+                set: function (value) {
+                    state.todos.forEach(function (todo) {
+                        todo.completed = value;
+                    });
+                }
+            })
+
+            //https://github.com/vuejs/rfcs/pull/97#issuecomment-555565801 ;remove filters
+            function pluralizeRemaining(val) {
+                return val === 1 ? "item" : "items";
+
+            }
+            let methods = {
+                addTodo: function () {
+                    var value = state.newTodo && state.newTodo.trim();
+                    if (!value) {
+                        return;
+                    }
+                    state.todos.push({
+                        id: todoStorage.uid++,
+                        title: value,
+                        completed: false
+                    });
+                    state.newTodo = "";
+                },
+
+                removeTodo: function (todo) {
+                    state.todos.splice(state.todos.indexOf(todo), 1);
+                },
+
+                editTodo: function (todo) {
+                    state.beforeEditCache = todo.title;
+                    state.editedTodo = todo;
+                },
+
+                doneEdit: function (todo) {
+                    if (!state.editedTodo) {
+                        return;
+                    }
+                    state.editedTodo = null;
+                    todo.title = todo.title.trim();
+                    if (!todo.title) {
+                        state.removeTodo(todo);
+                    }
+                },
+
+                cancelEdit: function (todo) {
+                    state.editedTodo = null;
+                    todo.title = state.beforeEditCache;
+                },
+
+                removeCompleted: function () {
+                    state.todos = filters.active(state.todos);
+                }
+            }
+
+            // Vue.onMounted(() => {
+            //     console.log('当组挂载完成')
+            // });
+            // Vue.onUpdated(() => {
+            //     console.log('数据发生更新')
+            // });
+            // Vue.onUnmounted(() => {
+            //     console.log('组件将要卸载')
+            // })
+
+            return { // 返回上下文,可以在模板中使用
+                ...Vue.toRefs(state),
+                filteredTodos,
+                remaining,
+                allDone,
+                pluralizeRemaining,
+                ...methods
+            }
+        },
+    }
+
+    var app = Vue.createApp(App);
+    //https://github.com/vuejs/vue-next/issues/33
+    //https://jsfiddle.net/catrope/s0th46n2/11/
+    //创建全局指令需要在挂载Dom之前
+    app.directive("todo-focus", {
+        beforeMount(el, binding, vnode, prevVnode) {
+            if (binding.value) {
+                el.focus();
+            }
+        },
+        mounted() {},
+        beforeUpdate() {},
+        updated(el, binding, vnode, prevVnode) {
+            if (binding.value) {
+                el.focus();
+            }
+        },
+        beforeUnmount() {}, // new
+        unmounted() {}
+    });
+    //实例
+    var proxy = app.mount(".todoapp");
+    // handle routing
+    function onHashChange() {
+        var visibility = window.location.hash.replace(/#\/?/, "");
+        if (filters[visibility]) {
+            proxy.visibility = visibility;
+        } else {
+            window.location.hash = "";
+            proxy.visibility = "all";
+        }
+    }
+
+    window.addEventListener("hashchange", onHashChange);
+    onHashChange();
+</script>
+
+<body>
+
+</html>
