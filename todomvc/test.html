@@ -1,0 +1,28 @@
+<html>
+<body>
+    <div id="app">
+        <input type="text" v-model="newTodo" />
+        <p>{{newTodo}}</p>
+        <button @click="say">大声说爱你</button>
+    </div>
+    <!-- <script src="https://unpkg.com/vue@3.0.0-beta.14/dist/vue.global.js"></script> -->
+    <script src="./vue-next@3.0.0-beta.14.js"></script>
+    <script>
+        var app=Vue.createApp({//创建Vue实例的入口方法
+            setup(){
+                var newTodo=Vue.ref("");//创建一个响应式的变量
+                function say(){
+                    console.log(newTodo.value);
+                }
+                //让我们把响应式的变量以及一些方法return出去，这样Vue就知道你要干嘛了
+                return {
+                    newTodo,    //相当于{ newTodo:newTodo,say:say }
+                    say
+                }
+            }
+        })
+        //挂载到<div id="app"/>上
+        var p=app.mount("#app")
+    </script>
+</body>
+</html>

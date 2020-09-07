@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STEP1</title>
+</head>
+
+<body>
+    <div id="app">
+        <input type="text" v-model="newTodo" autofocus autocomplete="off" placeholder="What needs to be done?"
+            @keyup.enter="addTodo">
+        <ul>
+            <li v-for="todo in state.todos" :key="todo.id">
+                <input type="checkbox" v-model="todo.completed" />
+                <input type="text" v-model="todo.title" @blur="doneEdit(todo)" @keyup.enter="doneEdit(todo)"
+                    @keyup.esc="cancelEdit(todo)" />
+                <button @click="removeTodo(todo)">移除</button>
+            </li>
+        </ul>
+    </div>
+    <script src="https://unpkg.com/vue@3.0.0-beta.14/dist/vue.global.js"></script>
+    <script>
+        var App = {
+            setup() {
+                const state = Vue.reactive({
+                    todos: [],
+                }); // 定义响应数据
+                var newTodo = Vue.ref("");
+
+                function addTodo() {
+                    var value = newTodo.value && newTodo.value.trim();
+                    if (!value) {
+                        return;
+                    }
+                    state.todos.push({
+                        id: +new Date(),
+                        title: value,
+                        completed: false
+                    });
+                    newTodo.value = "";
+                }
+
+                function removeTodo(todo) {
+                    state.todos.splice(state.todos.indexOf(todo), 1);
+                }
+
+                function doneEdit(todo) {
+                    todo.title = todo.title.trim();
+                    if (!todo.title) {
+                        removeTodo(todo);
+                    }
+                }
+                return {
+                    state,
+                    newTodo,
+                    addTodo,
+                    removeTodo,
+                    doneEdit
+                }
+            }
+        }
+
+        var app = Vue.createApp(App);
+        var proxy = app.mount(document.querySelector("#app"));
+    </script>
+</body>
+
+</html>
