@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JSZip演示多table下载</title>
+  </head>
+  <body>
+    <div>
+      <table id="tableBody">
+        <thead>
+          <tr>
+            <th>name</th>
+            <th>age</th>
+            <th>sex</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>网</td>
+            <td>24</td>
+            <td>男</td>
+          </tr>
+          <tr>
+            <td>陈</td>
+            <td>24</td>
+            <td>男</td>
+          </tr>
+        </tbody>
+      </table>
+      <table id="tableBody2">
+        <thead>
+          <tr>
+            <th>name</th>
+            <th>age</th>
+            <th>sex</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>卢</td>
+            <td>35</td>
+            <td>男</td>
+          </tr>
+        </tbody>
+      </table>
+      <button onclick="down()">下载</button>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.16.8/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.5.0/dist/jszip.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/FileSaver@0.10.0/FileSaver.js"></script>
+    <script>
+      function getBlob(name){
+        const toBuffer = (wbout) => {
+          const buf = new ArrayBuffer(wbout.length)
+          const view = new Uint8Array(buf)
+          for (let index = 0; index !== wbout.length; ++index) view[index] = wbout.charCodeAt(index) & 0xFF
+          return buf
+        }
+        const table =document.querySelector(name);
+        const book = XLSX.utils.book_new();
+        const sheet = XLSX.utils.table_to_sheet(table);
+        XLSX.utils.book_append_sheet(book, sheet);
+        const wbout = XLSX.write(book, { bookType: "xlsx", bookSST: false, type: "binary" });
+        const blob = new Blob([toBuffer(wbout)], { type: "application/octet-stream" });
+        return blob
+      }
+      function down() {
+        // 转换数据
+        var data=[
+          {name:"1.xlsx",file:getBlob("#tableBody")},
+          {name:"2.xlsx",file:getBlob("#tableBody2")},
+        ]
+        var zip = new JSZip();
+        data.forEach(function (obj) {
+          // zip包里面不断塞svg文件
+          zip.file(obj.name, obj.file);
+        });
+        // 生成zip文件并下载
+        zip
+          .generateAsync({
+            type: "blob",
+          })
+          .then(function (content) {
+            // 下载的文件名
+            var filename = "文件" + ".zip";
+            // 创建隐藏的可下载链接
+            var eleLink = document.createElement("a");
+            eleLink.download = filename;
+            eleLink.style.display = "none";
+            // 下载内容转变成blob地址
+            eleLink.href = URL.createObjectURL(content);
+            // 触发点击
+            document.body.appendChild(eleLink);
+            eleLink.click();
+            // 然后移除
+            document.body.removeChild(eleLink);
+          });
+      }
+    </script>
+  </body>
+</html>
